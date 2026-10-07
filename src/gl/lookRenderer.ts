@@ -181,11 +181,20 @@ export class LookRenderer {
 
   /** Draws `image` through the look shader into this renderer's canvas, at
    * the canvas's current drawing-buffer size (resized here to match the
-   * canvas's CSS size × devicePixelRatio). Caller controls layout/CSS size;
-   * call this again whenever `image` or `params` changes. */
-  render(image: GLImageSource, params: ShaderParams): void {
+   * canvas's CSS size × devicePixelRatio × `supersample`). Caller controls
+   * layout/CSS size; call this again whenever `image`, `params`, or (if
+   * the canvas is being CSS-scaled up, e.g. a pinch/slider zoom control)
+   * the zoom level changes.
+   *
+   * `supersample` exists because a CSS `transform: scale(...)` zoom (see
+   * App.tsx's Zoom slider) stretches whatever's already in the canvas —
+   * without this, zooming past 100% just blows up the same
+   * display-sized raster and looks visibly blocky/blurry. Pass
+   * `Math.max(1, zoomPercent / 100)` so the drawing buffer itself grows to
+   * match, keeping the zoomed-in view sharp. */
+  render(image: GLImageSource, params: ShaderParams, supersample = 1): void {
     const gl = this.gl;
-    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const dpr = (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1) * supersample;
     const cssWidth = this.canvas.clientWidth;
     const cssHeight = this.canvas.clientHeight;
     let width: number;

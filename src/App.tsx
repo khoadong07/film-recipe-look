@@ -128,22 +128,27 @@ export default function App() {
     };
   }, []);
 
-  // Re-draw whenever the image or the computed look params change.
+  // Re-draw whenever the image, look params, or zoom level change. Zoom is
+  // a CSS transform: scale() on top of this canvas (see the Zoom slider
+  // below), so past 100% the drawing buffer itself needs to grow to match
+  // (supersampling) or the zoomed-in view just looks like a blown-up,
+  // blurry version of the same display-res render.
+  const zoomSupersample = Math.max(1, zoom / 100);
   useEffect(() => {
     if (!image || !rendererRef.current) return;
-    rendererRef.current.render(image, params);
-  }, [image, params]);
+    rendererRef.current.render(image, params, zoomSupersample);
+  }, [image, params, zoomSupersample]);
 
   // Re-draw on container resize too (canvas CSS size drives drawing-buffer size).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !image) return;
     const observer = new ResizeObserver(() => {
-      rendererRef.current?.render(image, params);
+      rendererRef.current?.render(image, params, zoomSupersample);
     });
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [image, params]);
+  }, [image, params, zoomSupersample]);
 
   // Generate the Snapseed-style card strip's thumbnails (one per recipe, at
   // its own base params — no live `adjustments` baked in, same as the
